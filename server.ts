@@ -17,7 +17,7 @@ class Player {
   x: number;
   y: number;
   angle: number;
-  movement: object;
+  movement: {[key: string]: boolean};
 
   constructor() {
     this.id = Math.floor(Math.random()*1000000000);
@@ -28,10 +28,14 @@ class Player {
     this.angle = 0;
     this.movement = {};
   }
-}; 
 
-let players = {};
+  move(distance: number) {
+    this.x += distance * Math.cos(this.angle);
+    this.y += distance * Math.sin(this.angle);
+  }
+};
 
+let players: object = {};
 
 io.on('connection', function(socket) {
   let player: Player | null = null;
@@ -50,4 +54,36 @@ io.on('connection', function(socket) {
     delete players[player.id];
     player = null;
   });
+});
+
+setInterval(() => {
+  Object.values(players).forEach((player: Player) => {
+    const movement = player.movement;
+    if(movement.forward) {
+      player.move(5);
+    }
+    if(movement.back) {
+      player.move(-5);
+    }
+    if(movement.left) {
+      player.angle -= 0.1;
+    }
+    if(movement.right) {
+      player.angle += 0.1;
+    }
+  });
+
+  io.sockets.emit('state', players);
+}, 1000/30)
+
+// ミドルウェア設定
+app.use('/static', express.static(__dirname + '/static'));
+
+// ルーティング設定
+app.get('/', (request, response) => {
+  response.sendFile(path.join(__dirname, '/static/index.html'));
+});;
+
+server.listen(3000, () => {
+  console.log('Starting server on port 3000')
 });
