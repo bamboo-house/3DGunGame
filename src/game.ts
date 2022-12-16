@@ -12,13 +12,13 @@ const gameStart = () => {
 }
 
 $(document).on('keydown keyup', (event: JQuery.Event) => {
-  const KeyToCommand = {
+  const KeyToCommand: {[key: string]: string} = {
     'ArrowUp': 'forward',
     'ArrowDown': 'back',
     'ArrowLeft': 'left',
     'ArrowRight': 'right',
   };
-  const command: string | undefined = KeyToCommand[event.key];
+  const command: string | undefined = KeyToCommand[event.key!];
   if(command) {
     if(event.type === 'keydown') {
       movement[command] = true;
