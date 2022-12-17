@@ -1,11 +1,11 @@
 import express from "express";
 import http from "http";
 import path from "path";
-import { Server } from "socket.io";
+import socketio from "socket.io";
 
 const app: express.Express = express();
-const server: http.Server = http.createServer();
-const io = new Server(server);
+const httpServer: http.Server = http.createServer(app);
+const io: socketio.Server = new socketio.Server(httpServer);
 
 const FIELD_WIDTH = 1000, FIELD_HEIGHT = 1000;
 
@@ -35,7 +35,7 @@ class Player {
   }
 };
 
-let players: object = {};
+let players: {[key: number]: Player} = {};
 
 io.on('connection', function(socket) {
   let player: Player | null = null;
@@ -74,7 +74,7 @@ setInterval(() => {
   });
 
   io.sockets.emit('state', players);
-}, 1000/30)
+}, 1000/30);
 
 // ミドルウェア設定
 app.use('/static', express.static(__dirname + '/static'));
@@ -82,8 +82,8 @@ app.use('/static', express.static(__dirname + '/static'));
 // ルーティング設定
 app.get('/', (request, response) => {
   response.sendFile(path.join(__dirname, '/static/index.html'));
-});;
+});
 
-server.listen(3000, () => {
-  console.log('Starting server on port 3000')
+httpServer.listen(3000, () => {
+  console.log('Starting server on port 3000');
 });
