@@ -9,16 +9,86 @@ const server = http.Server(app);
 const io = socketIO(server);
 
 const FIELD_WIDTH = 1000, FIELD_HEIGHT = 1000;
-class Player{
+
+class GameObject{
     constructor(obj={}){
         this.id = Math.floor(Math.random()*1000000000);
+        this.x = obj.x;
+        this.y = obj.y;
+        this.width = obj.width;
+        this.height = obj.height;
+        this.angle = obj.angle;
+    }
+
+    move(distance){
+        const oldX = this.x
+        const oldY = this.y;
+
+        this.x += distance * Math.cos(this.angle);
+        this.y += distance * Math.sin(this.angle);
+
+        let collision = false;
+
+        if(this.x < 0 || this.x + this.width >= FIELD_WIDTH || this.y <0 || this.y + this.height >= FIELD_HEIGHT){
+            collision = ture;
+        }
+        if(this.intersectWalls()){
+            collision = true;
+        }
+        if(collision){
+            this.x = oldX;
+            this.y = oldY;
+        }
+        return !collision;
+    }
+
+    intersect(obj){
+        return (this.x <= obj.x + obj.width) &&
+                (this.x + this.width >= obj.x) &&
+                (this.y <= obj.y + obj.height) &&
+                (this.y + this.height >= obj.y);
+    }
+
+    intersectWalls(){
+        return Object.values(walls).some((wall) => {
+            if(this.intersect(wall)){
+                return true;
+            }
+        });
+    }
+    
+    toJSON(){
+        return {
+            id: this.id,
+            x: this.x,
+            y: this.y,
+            width: this.width,
+            height: this.height,
+            angle: this.angle
+        };
+    };
+};
+
+class Player extends GameObject{
+    constructor(obj={}){
+        super(obj);
+        this.socketId = obj.socketId;
+        this.nickname = obj.nickname;
         this.width = 80;
         this.height = 80;
-        this.x = Math.random() * (FIELD_WIDTH - this.width);
-        this.y = Math.random() * (FIELD_HEIGHT - this.height);
-        this.angle = 0;
+        this.health = this.maxHealth = 10;
+        this.bullets = {};
+        this.point = 0;
         this.movement = {};
+
+        do{
+            this.x = Math.random() * (FIELD_WIDTH - this.width);
+            this.y = Math.random() * (FIELD_HEIGHT - this.height);
+            this.angle = 0;
+        }while(this.intersectWalls());
+
     }
+
     move(distance){
         this.x += distance * Math.cos(this.angle);
         this.y += distance * Math.sin(this.angle);
