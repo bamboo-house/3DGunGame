@@ -77,4 +77,5 @@ $('#canvas-2d').on('touchend', (event)=>{
         socket.emit('movement', movement);
     }
     event.preventDefault();
+    
 });
