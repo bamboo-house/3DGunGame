@@ -86,16 +86,104 @@ class Player extends GameObject{
             this.y = Math.random() * (FIELD_HEIGHT - this.height);
             this.angle = 0;
         }while(this.intersectWalls());
-
+    }
+    
+    shoot(){
+        if(Object.keys(this.bullets).lentgh >= 3){
+            return;
+        }
+        const bullet = new Bullet({
+            x: this.x + this.width/2,
+            y: this.y + this.height/2,
+            angle: this.angle,
+            player: this,
+        });
+        bullet.move(this.width/2);
+        this.bullets[bullet.id] = bullet;
+        bullets[bullet.id] = bullet;
     }
 
-    move(distance){
-        this.x += distance * Math.cos(this.angle);
-        this.y += distance * Math.sin(this.angle);
+    damage(){
+        this.health --;
+        if(this.health === 0){
+            this.remove();
+        }
+    }
+
+    remove(){
+        delete players[this.id];
+        io.to(this.socketId).emit('dead');
+    }
+
+    toJSON(){
+        return Object.assign(super.toJSON(), {
+            health: this.health,
+            maxHealth: this.maxHealth,
+            socketId: this.socketId,
+            point: this.point,
+            nickname: this.nickname
+        });
     }
 };
 
+class Bullet extends GameObject{
+    constructor(obj){
+        super(obj);
+        this.width = 15;
+        this.height = 15;
+        this.player = obj.player;
+    }
+
+    remove(){
+        delete this.player.bullets[this.id];
+        delete bullets[this.id];
+    }
+};
+
+class BotPlayer extends Player{
+    constructor(obj){
+        super(obj);
+        this.timer = setInterval(() => {
+            if(! this.move(4)){
+                this.angle = Math.random() * Math.PI * 2;
+            }
+            if(Math.random() < 0.03){
+                this.shoot();
+            }
+        }, 1000/30);
+    }
+
+    remove(){
+        super.remove();
+        clearInterval(this.timer);
+        setTimeout(() => {
+            const bot = new BotPlayer({nickname: this.nickname});
+            players[bot.id] = bot;
+        }, 3000);
+    }
+};
+
+class Wall extends GameObject{
+
+};
+
 let players = {};
+let bullets = {};
+let walls = {};
+
+for(let i=0; i<3; i++){
+    const wall = new Wall({
+            x: Math.random() * FIELD_WIDTH,
+            y: Math.random() * FIELD_HEIGHT,
+            width: 200,
+            height: 50,
+    });
+    walls[wall.id] = wall;
+}
+
+const bot = new BotPlayer({nickname: 'bot'});
+players[bot.id] = bot;
+
 
 io.on('connection', function(socket) {
     let player = null;
@@ -132,7 +220,27 @@ setInterval(function() {
             player.angle += 0.1;
         }
     });
-    io.sockets.emit('state', players);
+    Object.values(bullets).forEach((bullet) =>{
+        if(! bullet.move(10)){
+            bullet.remove();
+            return;
+        }
+        Object.values(players).forEach((player) => {
+            if(bullet.intersect(player)){
+                if(player !== bullet.player){
+                    player.damage();
+                    bullet.remove();
+                    bullet.player.point += 1;
+                }
+            } 
+        });
+        Object.values(walls).forEach((wall) => {
+            if(bullet.intersect(wall)){
+                bullet.remove();
+            }
+        });
+    });
+    io.sockets.emit('state', players, bullets, walls);
 }, 1000/30);
 
 app.use('/static', express.static(__dirname + '/static'));
