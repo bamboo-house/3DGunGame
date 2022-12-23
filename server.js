@@ -193,10 +193,18 @@ io.on('connection', function(socket) {
         });
         players[player.id] = player;
     });
+
     socket.on('movement', function(movement) {
         if(!player){return;}
         player.movement = movement;
     });
+
+    socket.on('shoot', function(){
+        console.log('shoot');
+        if(!player || player.health===0){return;}
+        player.shoot();
+    });
+    
     socket.on('disconnect', () => {
         if(!player){return;}
         delete players[player.id];
