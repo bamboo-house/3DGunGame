@@ -30,7 +30,7 @@ class GameObject{
         let collision = false;
 
         if(this.x < 0 || this.x + this.width >= FIELD_WIDTH || this.y <0 || this.y + this.height >= FIELD_HEIGHT){
-            collision = ture;
+            collision = true;
         }
         if(this.intersectWalls()){
             collision = true;
@@ -87,7 +87,7 @@ class Player extends GameObject{
             this.angle = 0;
         }while(this.intersectWalls());
     }
-    
+
     shoot(){
         if(Object.keys(this.bullets).lentgh >= 3){
             return;
@@ -190,6 +190,7 @@ io.on('connection', function(socket) {
     socket.on('game-start', (config) => {
         player = new Player({
             socketId: socket.id,
+            nickname: config.nickname,
         });
         players[player.id] = player;
     });
@@ -204,7 +205,7 @@ io.on('connection', function(socket) {
         if(!player || player.health===0){return;}
         player.shoot();
     });
-    
+
     socket.on('disconnect', () => {
         if(!player){return;}
         delete players[player.id];
